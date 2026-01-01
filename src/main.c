@@ -2,8 +2,12 @@
 #include <stdlib.h>
 #include <time.h>
 #include "array.h"
+#include "img.h"
 
 int main() {
+    test();
+    return 0;
+
     srand(time(NULL));
 
     int array_size = 10;
