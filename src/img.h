@@ -10,8 +10,7 @@ typedef struct Image {
     Color *pixels;
 } Image;
 
-void test();
-int *png_load(char *path);
+int png_load(char *path, Image *img);
 void png_free(Image *img);
 
 #endif
