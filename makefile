@@ -1,3 +1,7 @@
-all: src/main.c
-	gcc src/*.c -o main -Wall -Wextra
-	./main
+flags = -Wall -Wextra -g
+src = src/*.c
+prg = main
+
+all: 
+	gcc $(src) -o $(prg) $(flags)
+	./$(prg)
