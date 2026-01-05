@@ -36,51 +36,67 @@ int validate_png_header(FILE *file) {
         }
     }
 
-    printf(GRN "This is a PNG :3\n" RESET);
     return 0;
 }
 
 // Parse and pass next chunk. Return <___> when done and -1 on failure
 int png_parse_next_chunk(FILE *file, pngChunk *chunk) {
-    chunk->length = 0;
-
+    // Length
     for (int i = sizeof(chunk->length) - 1; i >= 0; i--) {
         int c = fgetc(file);
         if (c == EOF) {
-            printf(RED "Error: Chunk ended prematurely\n" RESET);
+            printf(RED "Error: Chunk length ended prematurely\n" RESET);
             return -1;
         }
         ((uint8_t*) &chunk->length)[i] = (uint8_t) c;
     }
 
-    printf("Length: %d\n", chunk->length);
-
+    // Type
     if (fread(chunk->type, sizeof(unsigned char), sizeof(chunk->type), file) != sizeof(chunk->type)) {
-        printf(RED "Error: Chunk ended prematurely\n" RESET);
+        printf(RED "Error: Chunk type ended prematurely\n" RESET);
         return -1;
     }
 
-    printf("Type: %c%c%c%c\n", chunk->type[0], chunk->type[1], chunk->type[2], chunk->type[3]);
+    // Data
+    chunk->data = malloc(chunk->length * sizeof(uint8_t));
+    if (fread(chunk->data, sizeof(uint8_t), chunk->length, file) != chunk->length) {
+        printf(RED "Error: Chunk data ended prematurely\n" RESET);
+        free(chunk->data);
+        return -1;
+    }
 
-    // Type
-    // for (int i = 0; i < 4; i++) {
-    //     chunk->type[i] = fgetc(file);
-    // }
-    // printf("Type: %c%c%c%c\n", chunk->type[0], chunk->type[1], chunk->type[2], chunk->type[3]);
-    //
-    // chunk->data = malloc(chunk->length);
-    // for (uint32_t i = 0; i < chunk->length; i++) {
-    //     chunk->data[i] = fgetc(file);
-    //     printf("%02x ", chunk->data[i]);
-    // }
-    // printf("\n");
+
+    // CRC
+    if (fread(chunk->crc, sizeof(uint8_t), sizeof(chunk->crc), file) != sizeof(chunk->crc)) {
+        printf(RED "Error: Chunk crc ended prematurely\n" RESET);
+        return -1;
+    }
 
     return 0;
+}
+
+void png_print_chunk(pngChunk *chunk) {
+    printf(CYN "Length" RESET ": %d\n", chunk->length);
+
+    printf(CYN "Type" RESET ": %c%c%c%c\n", chunk->type[0], chunk->type[1], chunk->type[2], chunk->type[3]);
+
+    printf(CYN "Data: " RESET);
+    for (uint32_t i = 0; i < chunk->length; i++) {
+        printf("%02x ", chunk->data[i]);
+    }
+    printf("\n");
+
+    printf(CYN "CRC: " RESET);
+    for (size_t i = 0; i < sizeof(chunk->crc); i++) {
+        printf("%02x ", chunk->crc[i]);
+    }
+    printf("\n");
 }
 
 int pdl_png_load(char *path, pdl_Image *img) {
     FILE *file = fopen(path, "rb");
 
+    printf(MAG "Loading %s\n" RESET, path);
     if (validate_png_header(file) != 0) {
         if (file != NULL) {
             fclose(file);
@@ -89,13 +105,17 @@ int pdl_png_load(char *path, pdl_Image *img) {
         return -1;
     }
 
-    pngChunk parsed_chunk;
-    if (png_parse_next_chunk(file, &parsed_chunk) != 0) {
+    pngChunk chunk;
+    if (png_parse_next_chunk(file, &chunk) != 0) {
         fclose(file);
         file = NULL;
         return -1;
     }
 
+    png_print_chunk(&chunk);
+
+    free(chunk.data);
+    chunk.data = NULL;
     fclose(file);
 
     return 0;
