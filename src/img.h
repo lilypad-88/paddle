@@ -1,16 +1,16 @@
 #ifndef IMG_H
 #define IMG_H
 
-typedef struct Color {
+typedef struct pdl_Color {
     float r, g, b;
-} Color;
+} pdl_Color;
 
-typedef struct Image {
+typedef struct pdl_Image {
     int width, height;
-    Color *pixels;
-} Image;
+    pdl_Color *pixels;
+} pdl_Image;
 
-int png_load(char *path, Image *img);
-void png_free(Image *img);
+int pdl_png_load(char *path, pdl_Image *img);
+void pdl_png_free(pdl_Image *img);
 
 #endif
