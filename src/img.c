@@ -16,6 +16,16 @@ typedef struct pngChunk {
     uint8_t crc[4];
 } pngChunk;
 
+typedef struct pngIHDRData {
+    uint32_t width;
+    uint32_t height;
+    uint8_t bit_depth;
+    uint8_t color_type;
+    uint8_t compression_method;
+    uint8_t filter_method;
+    uint8_t interlace_method;
+} pngIHDRData;
+
 // Confirm PNG header is readable
 int validate_png_header(FILE *file) {
     if (file == NULL) {
@@ -75,6 +85,7 @@ int png_parse_next_chunk(FILE *file, pngChunk *chunk) {
     return 0;
 }
 
+// Print chunk details
 void png_print_chunk(pngChunk *chunk) {
     printf(CYN "Length" RESET ": %d\n", chunk->length);
 
@@ -91,6 +102,18 @@ void png_print_chunk(pngChunk *chunk) {
         printf("%02x ", chunk->crc[i]);
     }
     printf("\n");
+}
+
+// Return uint32 with inverted endianess of num
+uint32_t pdl_uint32_reverse_endianness(uint32_t *num) {
+    uint32_t inverted_num = 0;
+    int j = 0;
+    for (int i = sizeof(uint32_t) - 1; i >= 0; i--) {
+        uint8_t c = ((uint8_t *)num)[j];
+        ((uint8_t *) &inverted_num)[i] = c;
+        j++;
+    }
+    return inverted_num;
 }
 
 int pdl_png_load(char *path, pdl_Image *img) {
@@ -111,9 +134,14 @@ int pdl_png_load(char *path, pdl_Image *img) {
         file = NULL;
         return -1;
     }
+    pngIHDRData data;
+    // printf("chunk.data: %d\n", *(uint32_t*) *chunk.data);
+    data.width = pdl_uint32_reverse_endianness((uint32_t *) chunk.data);
+    printf("Width: %d\n\n", data.width);
 
     png_print_chunk(&chunk);
 
+    // Temp pdl_png_free()
     free(chunk.data);
     chunk.data = NULL;
     fclose(file);
